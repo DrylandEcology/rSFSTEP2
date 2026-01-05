@@ -763,9 +763,9 @@ if(rescale_phenology){
       nmax <- max(1, 12 - sum(biomass.default[thisRow, ] < biomass.default.max[thisRow]))
       
       # Un-scaled minimum value of peak biomass months
-  	  ids <- order(biomass[thisRow,], decreasing = TRUE)[seq_len(nmax)]
- 	  pmin <- min(biomass[thisRow, ids])
- 	
+  	  ids <- order(as.numeric(biomass[thisRow, ]), decreasing = TRUE)[seq_len(nmax)]
+	  pmin <- min(as.numeric(biomass[thisRow, ids]))
+	
       # Scale values to maintain the number of peak biomass months
   	  biomass[thisRow,] <- biomass[thisRow,] *  biomass.default.max[thisRow] / pmin
       
