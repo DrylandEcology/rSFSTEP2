@@ -1133,33 +1133,58 @@ if(co2_effects){
   # return bvt.denom.cc, newly derived denominators for the calculation of bvt
   source(co2.file)
   
-  # Move to the DIST directory so we can read the rgroup files and update bvt.
+  # move to the DIST directory so we can read the rgroup files and update bvt.
   setwd(source.dir)
   setwd("STEPWAT_DIST")
   
   file_number <- 0
   
-  # Loop through all of the rgroup files
+  # identify the available rgroup treatments
+  treatments <- unique(rgroup_data$treatment)
+  
+  # loop through all of the rgroup files
   for(rg in rgroups){
     file_number <- file_number + 1
-          
-    # read the start of the file n_rgroups[file_number] is the number of rgroups that were read in when creating
-    # this specific rgroup file (the file denoted by "rg").
-    rgrp <- readLines(con <- paste0(rg,".in"), n_rgroups)
+  
+    # identify the climate scenario associated with this rgroup file
+    climate_name <- names(rgroups)[file_number]
+    
+    # identify the corresponding climate scenario column in bvt.denom.cc
+    climate_col <- match(climate_name, colnames(bvt.denom.cc))
+    
+    # identify the rgroup treatment associated with this file
+    treatment_matches <- treatments[
+      vapply(treatments, function(x)
+        grepl(paste0(".", x, "."), rg, fixed=TRUE),
+        logical(1))]
+    
+    treatment_name <- treatment_matches[1]
+    
+    # identify the rows in rgroup_data corresponding to this treatment
+    treatment_rows <- which(rgroup_data$treatment == treatment_name)
+    
+    # determine the number of rgroup lines to read
+    n_to_read <- length(treatment_rows)
+    
+    # read the start of the file, n_rgroups[file_number] is the number of rgroups that were read in
+    # when creating this specific rgroup file
+    rgrp <- readLines(paste0(rg, ".in"), n = n_to_read)
     
     # split the file along tabs. This produces a 2d array of entries where rows are lines of the original file
     # and columns are the entries of each line
-    rgrp <- strsplit(rgrp, "\t")
+    rgrp <- strsplit(rgrp, "\t", fixed=TRUE)
     
-    # here replace the bvt values with those in bvt.denom.cc for each functional type and climate scenario 
-      for(y in 1:length(rgrp)){
-          rgrp[[y]][24] <- bvt.denom.cc[y,file_number]
-      }
+    # replace the bvt values with those in bvt.denom.cc for each functional type and climate scenario 
+    for(y in seq_along(rgrp)){
+      rgrp[[y]][24] <- as.character(
+        bvt.denom.cc[treatment_rows[y], climate_col]
+      )
+    }
         # the new rgroup file is now stored in a 2d array. We need to stitch back together the entries, 
         # with tabs between columns and newline characters between rows
         readjusted_bvt <- ""
         
-        for(y in 1:length(rgrp)){
+        for(y in seq_along(rgrp)){        
           readjusted_bvt <- paste0(readjusted_bvt, rgrp[[y]][1])
           for(x in 2:length(rgrp[[1]])){
             readjusted_bvt <- paste0(readjusted_bvt, "\t", rgrp[[y]][x])
@@ -1169,7 +1194,7 @@ if(co2_effects){
         
         writeLines(readjusted_bvt, paste0(rg, ".in"), sep = "")
        
-        # concatinate the template to the new file.
+        # concatenate the template to the new file.
         system(paste("cat ","rgroup_template.in >>", paste0(rg, ".in"),sep=""))
         
       } 

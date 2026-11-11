@@ -8,10 +8,16 @@ n_rcp_years <- length(co2_data$RCP)
 # create unique list of RCP_YEARS combinations specified in inputs
 unique.rcp.years <- do.call(paste, c(co2_data[,3:2], sep = "."))
 
+# create unique row names for all rgroup inputs (rgroup name - treatment combinations)
+rgroup.row.names <- make.unique(paste(rgroup_data$Site,
+                                      rgroup_data$treatment,
+                                      rgroup_data$name,
+                                      sep = "."))
+                                      
 # set up a results container for bvt for each RCP-YEARS combination
 bvt.denom <- data.frame(matrix(ncol=n_rcp_years,nrow=length(rgroup_data$name)))
 colnames(bvt.denom)=c(unique.rcp.years)
-rownames(bvt.denom)=rgroup_data$name
+rownames(bvt.denom)=rgroup.row.names
 
 # derive bvt for each plant functional type based on the corresponding C3 species and C4 species equations below
 # and based for each RCP-YEARS combination
@@ -26,13 +32,21 @@ for(i in 1:length(unique.rcp.years)){
   bvt.denom[6,i] = default.bvt[6,3]/(0.07967256 *co2_data$CO2[i] ^ 0.42793)
   bvt.denom[7,i] = default.bvt[7,3]/(0.07967256 *co2_data$CO2[i] ^ 0.42793)
   bvt.denom[8,i] = default.bvt[8,3]/(0.2735612 *co2_data$CO2[i] ^ 0.21917)
-  bvt.denom[9,i] = default.bvt[8,3]/(0.07967256 *co2_data$CO2[i] ^ 0.42793)
+  bvt.denom[9,i] = default.bvt[9,3]/(0.07967256 *co2_data$CO2[i] ^ 0.42793)
   bvt.denom[10,i] = default.bvt[10,3]/(0.07967256 *co2_data$CO2[i] ^ 0.42793)
+}
+
+# fill in the BVT values across all rgroup treatments
+# matching functional types so that treatments with the same CO2 scenario receive identical BVT values
+for(i in 1:length(unique.rcp.years)){
+  bvt.denom[,i] <- bvt.denom[match(rgroup_data$name,
+                                   rgroup_data$name[1:10]),i]
 }
 
 # set up a results container for bvt for each climate scenario specified in climate.conditions
 bvt.denom.cc <- data.frame(matrix(ncol=length(climate.conditions),nrow=length(rgroup_data$name)))
-rownames(bvt.denom.cc)=rgroup_data$name
+
+rownames(bvt.denom.cc)=rgroup.row.names
 colnames(bvt.denom.cc)=climate.conditions
 
 # populate results container with climate scenario specific bvt
